@@ -116,9 +116,9 @@ public class GitInitialize {
                 // For each line, we find the file path that is mapped on that line.
                 // If that file path is the same as the path we currently have
                 // We just rewrite the line
-                if (line.substring(line.indexOf(" ") + 1).equals("myProject/" + filePath)) {
+                if (line.substring(line.indexOf(" ") + 1).equals(filePath)) {
                     replacedFile = true;
-                    indexString.append(hash + " myProject/" + filePath);
+                    indexString.append(hash + " " + filePath);
                 } else {
                     indexString.append(line);
                 }
@@ -129,9 +129,9 @@ public class GitInitialize {
             if (!replacedFile) {
                 // We did not replace a file so this file was never added to the index before
                 if (indexString.toString().equals("")) {
-                    indexString.append(hash + " myProject/" + filePath);
+                    indexString.append(hash + " " + filePath);
                 } else {
-                    indexString.append("\n" + hash + " myProject/" + filePath);
+                    indexString.append("\n" + hash + " " +  filePath);
                 }
 
             }
