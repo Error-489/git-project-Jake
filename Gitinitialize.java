@@ -48,7 +48,10 @@ public class GitInitialize {
             } else {
                 System.out.println("Git Repository Created");
             }
-        } catch (Exception e) {
+            String commitSha = git.commit("test name", "test commit");
+            System.out.println("commit: " + commitSha);
+        } 
+        catch (Exception e) {
             System.out.println("There's an error.");
         }
 
@@ -78,29 +81,11 @@ public class GitInitialize {
 
     public void createBlob(String filePath) throws IOException {
         try {
-
-            String hash = hashFile(filePath);
-            File newFile = new File(objectsFolder, hash);
-            newFile.createNewFile();
-
-            BufferedReader fileReader = new BufferedReader(new FileReader(filePath));
-            StringBuilder fileContents = new StringBuilder();
-            // Reading in the entirety of the file and adding in new lines if the file
-            // contents
-            // haven't ended.
-            while (fileReader.ready()) {
-                fileContents.append(fileReader.readLine());
-                if (fileReader.ready()) {
-                    fileContents.append("\n");
-                }
-            }
-            fileReader.close();
-            FileWriter fileWriter = new FileWriter(newFile.toPath().toString());
-            fileWriter.write(fileContents.toString());
-            fileWriter.close();
-
-        } catch (Exception e) {
-            System.out.println("There's an error in createBlob: " + e.getMessage());
+            byte[] bytes = Files.readAllBytes(Path.of(filePath));
+            String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(bytes));
+            Files.write(new File(objectsFolder, hash).toPath(), bytes);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("no", e);
         }
     }
 
@@ -282,4 +267,45 @@ public class GitInitialize {
         return "";
 
     }
+
+    public String commit(String author, String message) {
+        try {
+            String rootTreeHash = createTreesFromIndex();
+            if (rootTreeHash == null || rootTreeHash.isEmpty()) {
+                System.out.println("noo root");
+                return "";
+            } //checks root exists
+            String parentHash = "";
+            if (headFile.exists() && headFile.length() > 0) {
+                parentHash = Files.readString(headFile.toPath()).trim();
+            }
+            //git head is used for parenthash, the previous commits hash, if its empty it days """
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String date = formatter;
+            StringBuilder commitContent = new StringBuilder();
+            commitContent.append("tree: ").append(rootTreeHash).append("\n");
+            if (!parentHash.isEmpty()) {
+                commitContent.append("parent: ").append(parentHash).append("\n");
+            }
+            commitContent.append("author: ").append(author).append("\n");
+            commitContent.append("date: ").append(date).append("\n");
+            commitContent.append("message: ").append(message);
+
+            String content = commitContent.toString();
+            //just make all the commit parts and jam them toghter into commitcontent
+            String commitHash = hashString(content);
+            Path commitPath = new File(objectsFolder, commitHash).toPath();
+            Files.writeString(commitPath, content, StandardCharsets.UTF_8);
+            Files.writeString(headFile.toPath(), commitHash, StandardCharsets.UTF_8);
+            // hash and put hash for commit for head
+            return commitHash;
+
+        } catch (Exception e) {
+            System.out.println("Commit error: " + e.getMessage());
+            return "";
+        }
+    }
+    
+
 }
